@@ -93,6 +93,10 @@ a = b; //这是对象的赋值
 因为访问控制是针对类来讲而不是针对对象，拷贝构造函数在类的内部，当然可以访问它的`private`数据。
 * 初始化时
 ```cpp
+Tset(const Test &p)//参数一般为const引用
+{
+ ...
+}
 Test a1(1, 2); //带参数的构造函数
 
 Test a2 = a1; // 初始化法，定义a2用拷贝构造函数初始化
@@ -195,6 +199,9 @@ public:
 }
 ```
 初始化的顺序是和定义顺序一致，于初始化列表的顺序**无关**。执行完初始化列表后，再执行函数体。
+
+#### 构造函数和析构函数的调用顺序
+对象里组合了其他对象，先调用其他对象的构造函数，最后调用自己的。**析构顺序和构造顺序相反**。
 
 ### 动态分配内存
 C++和C的区别：
@@ -386,6 +393,14 @@ ostream& operator<<(ostream &out, const Test &a) //左操作数右操作数都�
 {
 	out << "m_a is" << a.m_a << "m_b is" << a.m_b;
 	return out;
+}
+istream& operator>>(istream &in, Test &a)
+{
+	cout << "please input the a:" << endl;
+	in >> a.m_a;
+	cout << "please input the b:" << endl;
+	in >> a.m_b;
+	return in;
 }
 Test a(1, 2);
 std::cout << a << "asdads";
