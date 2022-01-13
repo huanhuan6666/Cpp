@@ -565,6 +565,7 @@ class Child : public Parent
 访问`c.B`时不知道访问哪个，因此为了解决这种问题，引入**虚继承**：
 
 ![image](https://user-images.githubusercontent.com/55400137/149302939-6da33571-507c-4df2-ae96-0a486874bcf1.png)
+
 即使用`virtual`关键字后，编译器对`B`的构造函数**只调用一次**，从而避免了二义性。
 ## 多态
 封装突破了C语言函数的概念，继承实现了代码的简单复用
