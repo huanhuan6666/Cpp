@@ -322,4 +322,23 @@ Test t1, t2;
 Test t3 = operator+(t1, t2);
 Test t4 = t1 + t2;
 ```
-其中`operator+(t1, t2);`和`t1 + t2`是**完全一样**的。
+其中`operator+(t1, t2)`和`t1 + t2`是**完全一样**的。
+#### 写法
+* 作为全局函数(一般**定义成类的友元函数**)：
+	* 二元运算符：+ - * / 
+	```cpp
+	class Test
+	{
+	friend Test operator+(Test &a, Test &b); //将全局函数声明为友元函数
+	}
+	
+	Test operator+(Test &a, Test &b); //a b分别为左操作数和右操作数
+	```
+	* 一元运算符： ++ --
+	```cpp
+	
+	```
+* 作为成员函数：
+	```cpp
+	Test operator+(Test &b); //左操作数被隐含了，编译器自动用this指针填充
+	```
