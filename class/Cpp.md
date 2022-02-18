@@ -461,7 +461,7 @@ int& operator[](int &i)
 bool operator>(const Test &a)
 {
 	if(this->m_a > a.m_a || this->m_b > a.m_b)
-		return truel
+		return true;
 	return false;
 }
 bool operator<=(const Test &a)
@@ -898,6 +898,8 @@ int main()
 ```
 类模板必须显式指定<>中的类型，并且**注意**：类模板是**抽象的**，**无法用类模板来定义对象**，这点看来好似抽象类；只有给出<>中的类型后**才算实例化了一个类**，也就是所谓**模板类**，才可以定义对象。
 
+但是，可以不给出`<>`也能够用类模板的**指针或者引用**，一般都用模板指针/引用做**函数参数**。
+
 因此，**类模板的静态成员仅属于实例化后的类**，这也是很好理解的，毕竟类模板什么都不是，就是个抽象的概念，给出数据类型后才算确定了类：
 ```cpp
 test<int> a, b; //a, b共享一个m_s静态成员，即类test<int>类静态成员
@@ -948,6 +950,111 @@ public:
 	}
 }
 ```
+
+#### 类模板中的操作符重载
+* 所有函数都定义在类模板的内部，包括友元函数
+
+这种方法最保险，最不容易出现问题，后面我们会讲函数定义写在类模板外部的写法。
+```cpp
+template<class T>
+class Complex
+{
+	friend ostream& operator<<(ostream& out, const Complex& c) //把友元函数定义也写在类内部，写在外面运行时会报错
+	{
+		out <<  c.m_a << "+" << c.m_b << "i" << endl;
+		return out;
+	}
+private:
+	T m_a;
+	T m_b;
+public:
+	Complex(T a, T b)
+	{
+		m_a = a;
+		m_b = b;
+	}
+	Complex operator+(const Complex &c)
+	{
+		Complex res(m_a+c.m_a, m_b+c.m_b);
+		return res;
+	}
+}
+```
+显然重载<<运算符需要通过**友元**函数，但是这里我们需要把**友元函数的定义也写在类的内部**，否则就会报错。这和普通类不一样，之前的例子我们都是直接把友元函数作为全局函数写在**类外的**，但是即便定义在类内部也**不是类成员**，而是**全局函数**。所谓类成员必须有类**成员限定符**`Complex::`的.
+
+* 所有函数定义都写在类模板的外部，但是在**同一个源文件**中
+这就不可避免要用**类限定符**了，类里面只有函数声明，定义全在类外，但是仍处于同一个cpp里，代码如下：
+```cpp
+class Complex
+{
+	friend ostream& operator<< <T>(ostream& out, const Complex& c) //友元函数的声明必须在函数名后加上<T>
+private:
+	T m_a;
+	T m_b;
+public:
+	Complex(T a, T b);
+	Complex operator+(const Complex &c);
+	void print();
+}
+//实现在类外，需要类限定和template关键字
+template<class T> //构造函数
+Complex<T>::Complex(T a, T b)
+{
+	m_a = a;
+	m_b = b;
+}
+
+template<class T> //普通成员函数
+void Complex<T>::print()
+{
+	cout << "test" << endl;
+}
+
+template<class T> //普通的成员函数，只不过是个操作符重载
+Complex<T> Complex<T>::operator+(const Complex& c) //参数的<T>可写可不写
+{
+	Complex<T> res(m_a + c2.m_a, m_b + c2.m_b); //这个是成员函数，相当于类的内部，因此这一行的<T>可写可不写
+	return res;
+}
+```
+
+接下来就是重量级了，凭什么友元函数写在外面就报错？比如：
+```cpp
+template<class T>
+ostream& operator<<(ostream& out, const Complex<T>& c)
+{
+	out << "m_a:" << c.m_a << " m_b:" << c.m_b << endl;
+	return out;
+}
+```
+> 别给我写什么Complex<T>::类限定，友元函数是**全局函数**ok？根本**不是类的成员**！！！
+这样编译可以过，但是运行时就是会宕掉。这其实是由于模板函数的二次编译导致的，具体原因不再细究了，解决办法为：在声明函数名后加上`<T>`
+```cpp
+friend ostream& operator<< <T>(ostream& out, const Complex& c);
+```
+非常丑，比那个重载后自增的`operator++(int)`还丑，说实话这确实是C++编译器做的不好的一个，但没办法就是这么定的。
+
+哈哈说不定还是为了限制滥用友元的良苦用心呢，还是老老实实在**类内部写函数定义**吧，就没这么多屁事了。除了左移右移的重载，其他的都算**滥用友元**！
+
+* 所有函数定义写在类外，并且.h和.cpp分开
+这是最麻烦的，假如你写了个**模板类**，并且声明和定义写在了不同的.h和.cpp中，如下：
+```cpp
+//test.c中
+#include "Complex.h"
+int main()
+{
+	...//测试
+}
+```
+会发现还是编译可以通过，但是一运行就宕，这还是两次编译惹的祸。这样只能在测试文件里包
+```cpp
+#include "Complex.cpp"
+```
+非常奇怪，因为正常情况都是包头文件的，但是不这么包就是找不到定义，就是会宕。
+	
+* **总结时刻**
+想写类模板，就老老实实写在一个**头文件**.h里，更好的就是把函数定义全写在类的内部，这样最方便，别人用起来直接包头就OK了，事实上STL源码就算这么干的，没有说把声明和实现拆开。
+
 
 ## C++的类型转换
 类型转换：Type Caet
