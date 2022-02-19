@@ -1136,5 +1136,215 @@ C++提供了输入输出iostream类库，它的继承关系如下：
 可以看到iostream多继承了istream和ostream类，因此有多继承的二义性问题，看源码也可以发现istream和ostream对于ios是**虚继承**。
 而我们常用的cin和cout分别是类istream和ostream的**对象**。类istream重载了操作符`<<`，ostream重载了操作符`>>`，对于普通类型完成了重载，对于自定义类型还是只能通过友元函数重载，见前文。
 
-emmm这部分内容太多了，之后再补吧，基于**类库**的文件IO和串IO啥的。。。我们之前学的什么fopen, fwrite都是基于函数库的文件IO，是C风格的。C++基于类库的才是正儿八经的stream流概念。
+之前学的什么fopen, fwrite都是基于函数库的文件IO，是C风格的。C++基于类库的才是正儿八经的stream流概念。
 
+而最常用的cout,cin其实是ostream,istream**类的对象**，还有个错误流cerr也是ostream类的对象。下面依次介绍：
+	
+### cin标准输入流对象
+首先是典中典的用法：
+```cpp
+int a;
+float b;
+cin >> a >> b; //直接接受键盘数据到a和b
+char buf[1024]; 
+string buf1;
+cin >> buf1;   //cin接受string不能接受空格
+cin >> buf;   //用cin输入char数组也不能接受空格！
+```
+那么该如何接受字符串的空格呢？
+几个API函数，即cin对象的成员函数：
+```cpp
+cin.get() //一次只能读取一个字符
+cin.get(一个参数) //读一个字符，支持链式
+cin.getline()
+cin.read() //二进制方式读文件
+cin.ignore() //忽略缓冲区的几个字符
+cin.peek() //只窥探一下缓冲区的下一个字符而不使用
+cin.putback() //将刚刚读到的字符吐回缓冲区
+```
+比如：
+```cpp
+char ch;
+while ((ch = cin.get()) != EOF)
+	cout << ch;
+```
+这样会不断接受缓冲区的字符，直到读到EOF，EOF可以用`ctrl+z`或者`ctrl+c`来模拟。
+	
+当然get有几个重载：
+```cpp
+char a, b, c;
+cin.get(a);
+cin.get(b);
+cin.get(c);
+cin.get(a).get(b).get(c); //支持链式编程
+```
+这样和`getchar()`非常像了，但是高级的是可以**链式编程**。
+	
+> 如果缓冲区内容不够(没有输入或者输入太少)的话，这个程序就**阻塞**到了cin那里了，进程就被挂起了hhh直到数据就绪
+
+* 接受带空格的**字符数组表示**的字符串：
+```cpp
+char buf[1024];
+cin.getline(buf, 1024); //内存打包
+```
+
+* 接受带空格的string：
+```cpp
+#include<string> //需要用到string库中的getline函数
+string str; 
+getline(cin, str);	
+```
+这里的getline是string库中的，不是cin的成员函数。
+
+### cout标准输出流对象
+还是一堆API罢了:
+```cpp
+cout.flush() //刷新缓冲区
+cout.put()   //输出一个字符
+cout.write() //二进制方式写文件
+cout.width()
+cout.fill()
+cout.setf(标记)
+```
+重要的是cout的**格式化输出**，比如输出宽度，十六进制输出，保留两位小数啥的。。
+```cpp
+#include <iomanip> //cout控制符需要包这个头文件
+int main()
+{
+	cout << hex << a << endl; //以十六进制形式输出整数a
+	const char* pt = "China"; //pt指向字符串"China"
+	cout << setfill('*') << setw(10) << pt << endl; //指定域宽,输出字符串,空白处以'*'填充
+}
+```
+还是printf好用点。。
+
+### 文件流IO
+需要包头文件：
+```cpp
+#include <iostream>
+#include <fstream>  //fstream是iostream的子类
+```
+#### 读写文本文件
+* 写文件
+输入输出和fprint什么的类似，输出流是写文件的，输入流是读文件的：
+```cpp
+ofstream fout; //文件输出流
+fout.open("test.txt");
+ofstream fout("test.txt"); //构造函数直接将输出流fout关联到test.txt文件上
+ofstream fout("test.txt", ios::out); //输出流默认为ios::out
+fout << "往文件里写一些东西..." << endl;  //endl不写下一句就会写到同一行
+fout << "再写一句" << endl;
+fout.close(); //别忘了关不然根本写不到文件上除非程序终止！
+```
+之前提到的各种什么width(), fill()输出控制符都可以用
+
+* 读文件
+用个输入流代表文件：
+```cpp
+ifstream fin; //文件输入流
+fin.open("test.txt");
+ifstream fin("test.txt");  //直接读test.txt
+ifstream fin("test.txt", ios::in);  //输入流默认为ios::in
+string str;
+char ch;
+getline(fin, str); //从fin中带空格读一行
+while((ch = fin.get()) != EOF) //一个个字符读整个文件直到结束
+	cout << ch;
+//while(fin.cin(ch)) 也一样
+fin.close(); //别忘了关！
+```
+关于打开文件的各种方式的参数设置如下：
+
+![image](https://user-images.githubusercontent.com/55400137/154791573-ec9b9e9f-757c-4f51-990c-5a5626005cec.png)
+
+我们用起来其实也不必区分ifstream还是ofstream，统一用`fstream`，然后指定打开方式即可，就像`fopen()`那样。
+
+可以用“位或”运算符“|”对输入输出方式进行**组合**
+```cpp
+ios::in | ios:: noreplace  //打开一个输入文件，若文件不存在则返回打开失败的信息
+ios::app | ios::nocreate  //打开一个输出文件，在文件尾接着写数据，若文件不存在，则返回打开失败的信息
+ios::out l ios::noreplace  //打开一个新文件作为输出文件，如果文件已存在则返回打开失败的信息
+ios::in l ios::out I ios::binary  //打开一个二进制文件，可读可写
+```	
+如果文件打开失败，`open`返回0，因此打开后可以做异常处理：
+```cpp
+ if(outfile.open("f1.bat", ios::app) ==0)
+        cout <<"open error";
+```
+#### 二进制读写文件及其原地修改
+* 用二进制方式读写文件的二进制数据：write, read
+由于默认是以ASCII方式打开文件的，如果要以二进制方式则：
+```cpp
+struct T
+{
+	int a = 0;
+	char name[10] = "adasd";
+};
+outfile.open("f1.bat", ios::out | ios::binary);
+T b;
+outfile.write((char *)&b, sizeof(b)); //用write写入二进制数据
+infile.open("f1.bat", ios::in | ios::binary);
+T c;
+infile.read((char *)&c, sizeof(c)); //用read读入二进制数据到c中
+```
+对应的也有移动文件指针的函数，
+```cpp
+seekp(); //移动输出指针
+tellp();
+seekg(); //移动输入指针
+tellg();
+```
+一般通过移动指针定位写的都是二进制文件，写一个结构体数组进去，可以一块块read然后找到符合的那个**下标**index，然后`seekp(index*sizeof(st));`来移动到数组指定的位置**修改文件**。
+> 这个之所以能够**原地修改**是因为结构体**大小已经确定**了！才能这么原地改不出问题。
+
+#### 如何修改文本文件
+而如果ASCII文件想要**修改特定的一行**，或者在文件**中间加一行**，**只能重写**，读源文件并且创建一个新的临时文件，**读一行写一行**，在写的过程中实现修改，最后将临时文件**改名覆盖源文件**，这是最可靠的做法，虽然很笨但没办法。
+
+但是尴尬的是fstream根本就不带文件名这个属性，还得用`<cstdio>`里的`rename()`函数修改，这个函数直接操作文件，**不涉及任何流**。
+> 貌似我测试的时候rename根本没法覆盖，如果冲突的话就rename失败了，所以还是先remove再rename吧。
+代码如下，是将源文件中的"HELLO"行替换成"GOODBYE"：
+```cpp
+#include <iostream>
+#include <fstream>
+#include<cstdio>
+
+using namespace std;
+
+int main()
+{
+	string strReplace = "HELLO";
+	string strNew = "GOODBYE";
+	ifstream filein("filein.txt"); //File to read from
+	ofstream tempout("fileout.txt"); //Temporary file
+	if (!filein || !tempout)
+	{
+		cout << "Error opening files!" << endl;
+		return 1;
+	}
+
+	string strTemp;
+	while (filein >> strTemp)
+	{
+		if (strTemp == strReplace)
+			strTemp = strNew;
+		strTemp += "\n";
+		tempout << strTemp;
+	}
+	filein.close();
+	tempout.close();
+	const char* oldname = "fileout.txt";
+	const char* newname = "filein.txt";
+	if (remove(newname) != 0)
+	{
+		cout << "remove old file error!";
+		exit(1);
+	}
+	if (rename(oldname, newname) != 0)
+	{
+		cout << "rename temp file error!";
+		exit(1);
+	}
+	return 0;
+}
+```
+	
