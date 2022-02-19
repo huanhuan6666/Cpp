@@ -1347,4 +1347,26 @@ int main()
 	return 0;
 }
 ```
-	
+更普遍的，将文件中"cactus"替换成另一个单词""oranges
+```cpp
+string search_string = "cactus";
+string replace_string = "oranges";
+string inbuf;
+fstream input_file("demo.txt", ios::in);
+ofstream output_file("result.txt");
+while (!input_file.eof())
+{
+	getline(input_file, inbuf);
+
+	int spot = inbuf.find(search_string); //找cactus的起始位置下标
+	if(spot >= 0)
+	{
+		 string tmpstring = inbuf.substr(0,spot);
+		 tmpstring += replace_string;
+		 tmpstring += inbuf.substr(spot+search_string.length(), inbuf.length());
+		 inbuf = tmpstring;
+	}
+
+	output_file << inbuf << endl;
+}
+```
