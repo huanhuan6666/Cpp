@@ -1136,4 +1136,5 @@ C++提供了输入输出iostream类库，它的继承关系如下：
 可以看到iostream多继承了istream和ostream类，因此有多继承的二义性问题，看源码也可以发现istream和ostream对于ios是**虚继承**。
 而我们常用的cin和cout分别是类istream和ostream的**对象**。类istream重载了操作符`<<`，ostream重载了操作符`>>`，对于普通类型完成了重载，对于自定义类型还是只能通过友元函数重载，见前文。
 
-emmm这部分内容太多了，之后再补吧，基于类库的文件IO和串IO啥的。。。
+emmm这部分内容太多了，之后再补吧，基于**类库**的文件IO和串IO啥的。。。我们之前学的什么fopen, fwrite都是基于函数库的文件IO，是C风格的。C++基于类库的才是正儿八经的stream流概念。
+
