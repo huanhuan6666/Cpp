@@ -445,6 +445,55 @@ Test& operator=(const Test &a)
 最简单的做法就是参数设置成**常引用**`const Tset& a`，因为**常引用兼容左值和右值**，因此常引用做函数参数一方面是为了避免修改参数本身，更深层的是为了**兼容左值和右值**。
 【参考文章】：[深入理解C++重载赋值操作符](https://www.cnblogs.com/dabaopku/p/4849377.html)
 
+#### 函数参数不要滥用常引用！
+上文提到的operator=操作符的重载，我们说明了常引用的优势，但是**切记**在其他地方**慎重使用**常引用，我们使用常引用参数的时候是直接通过参数**访问私有数据本身**，然而常引用参数却无法访问非const函数！！！，这就非常鸡肋了，比如：
+```cpp
+class Test
+{
+	int a;
+	int b;
+public:
+	Test(int i, int j) {
+		a = i;
+		b = j;
+	}
+	int geta() {
+		return a;
+	}
+	int getb() {
+		return b;
+	}
+	bool operator<(const Test& t2)  //这是个常引用参数！
+	{
+		return a < t2.geta();   //试图通过const对象访问非const参数，报错！！！
+	}
+};
+int main()
+{
+	Test t1(1, 2), t2(3, 4);
+	if (t1 < t2)
+	{
+		cout << "hahha" << endl;
+	}
+	return 0;
+}
+```
+看似没问题，编译可以通过但是一运行就宕，原因就在于：
+```cpp
+bool operator<(const Test& t2)  //这是个常引用参数！
+{
+	return a < t2.geta();   //试图通过const对象访问非const参数，报错！！！
+}
+```
+因此**不要滥用常引用做参数**！！！这里简单写`Test &`普通引用都没问题，**而且效率是一样的！**。
+```cpp
+bool operator<(Test& t2)  //普通引用能完成就别再添加限制了！
+{
+	return a < t2.geta();  
+}
+```
+还是那句话，普通引用就能完成的事情，非得加个const限制人家，多少沾点那啥🤭
+
 #### 对[]的重载
 []是个二元运算符！像数组那样`A[1] = 10`，显然需要当左值，因此返回引用是必须的。
 ```cpp
