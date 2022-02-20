@@ -151,7 +151,7 @@ const_reverse_iterator
 
 ### STL的string
 string的伟大之处在于，其所有成员函数都**兼容了**C风格的`char *`即**字符数组**。
-
+> string本身是STL的basic_string<>模板的一个实例。
 #### 操作
 下面只展示一**部分**成员函数，来简单展示一下：
 * 转换成char *
@@ -193,7 +193,7 @@ string &operator+=(const char *s);//把字符串s连接到当前字符串结尾
 int compare(const string &s) const;  //与字符串s比较
 int compare(const char *s) const;   //与字符串s比较
 ```
-* 字串
+* 子串
 ```cpp
 string substr(int pos=0, int n=npos) const;    //返回由pos开始的n个字符组成的子字符串
 ```
@@ -493,3 +493,114 @@ int main()
 	}
 }
 ```
+
+## 算法
+### 算法分类
+* 修改容器本身内容的算法
+	* 计数算法	 `count、count_if`
+	* 搜索算法	 `search、find、find_if、find_first_of、…`
+	* 比较算法	 `equal、mismatch、lexicographical_compare`
+* 不修改容器内容的算法
+	* 删除算法	 `remove、remove_if、remove_copy、…`
+	* 修改算法	 `for_each、transform`
+	* 排序算法	 `sort、stable_sort、partial_sort、`
+
+### 函数对象
+重载函数调用操作符的**类**（即重载类的operator()），**其对象**常称为**函数对象**（function object），即它们是行为类似函数的对象。函数对象通过`类名(参数列表)`的方式来使用，看起来和函数的用法一模一样，如果没有上下文，完全可以看作函数来对待。
+> 没什么特别的，就是类的操作符重载，只不过重载的是()函数调用操作符，稍微有点特殊罢了。因为这样看上去这个类和函数的用法非常像，所以也叫**仿函数**。
+比如：
+```cpp
+template<class T>
+class Show            //Show类重载了函数调用()操作符
+{
+public:
+	void operator() (T &t)
+	{
+		cout << t << " ";	
+	}
+}
+int main()
+{
+	int a = 10;
+	Show<int> showelem;   //showelem就是个函数对象！
+	shwoelem(a);          //和函数调用的格式一模一样
+	
+}
+```
+可以看到`shwoelem(a);`将输出10，如果不看上下文的话把他当作函数完全没问题，这就是**函数对象**，因此也叫做**仿函数**。
+> 一元函数对象：函数参数1个；二元函数对象：函数参数2个；
+	
+* 函数对象和普通函数
+上面我们定义了个类模板，重载了()操作符；下面我们定义一个函数模板，其实也能看做普通函数啦🤭
+```cpp
+template<class T>
+void func_show(T &t)   //模板函数
+{
+	cout << t << " ";
+}
+void print_func(int &t) //普通函数
+{
+	cout << t << " ";
+}
+int main(){
+	int a = 10;
+	func_show<int>(a);  //调用函数模板
+	print_func(a);      //调用普通函数
+}
+```
+再看下面的例子，C++风格的函数对象与C风格的回调函数，非常的类似，可以说函数对象是对C回调函数的**面向对象拓展**：
+```cpp
+vector<int> v1(5, 6);
+for_each(v1.begin(), v1.end(), Show<int>());   //传入匿名函数对象Show<int>()
+for_each(v1.begin(), v1.end(), showelem);      //传入实名函数对象showelem
+for_each(v1.begin(), v1.end(), print_func);     //C风格的传入回调函数
+```
+如果只看调用函数这个工作的话，函数对象和普通函数没有什么区别，不管是普通调用还是回调，写法都几乎一致。
+	
+但是函数对象人家是个**对象**，是**类的实例**，可以突破函数的概念，能够保持调用状态信息，比如：
+```cpp
+template<class T>
+class Show            //Show类重载了函数调用()操作符
+{
+private:
+	int count; 
+public:
+	Show()
+	{
+		count = 0;
+	}
+	void operator() (T &t)
+	{
+		count++;  //调用次数++
+		cout << t << " ";	
+	}
+	void printCount(){
+		cout << "count is: " << count;
+	}
+}
+int main()
+{
+	vector<int> v1(5, 6);
+	Show<int> show_int;   //定义一个函数对象
+	for_each(v1.begin(), v2.end(), show_int);  //将函数对象作为for_each参数
+	show_int.printCount();    //输出记录的调用次数
+}
+```
+可是这样最后输出的是0！？？看来还是没有理解**函数对象是个对象**的本质，`func_each()`原型如下，将一个对象做函数参数，是**值传递的**，也就是说会调用**拷贝构造函数**形成形参，count++修改的都是**形参**值！
+```cpp
+template <class _InIt, class _Fn>			  
+	_Fn for_each(_InIt _First, _InIt _Last, _Fn _Func)			     
+```
+那么有什么办法呢？for_each的返回值就是形参函数对象，只需要最后**赋值**给实参就ok了，即：
+```cpp
+show_int = for_each(v1.begin(), v2.end(), show_int);
+```
+可以看到**面向对象拓展后**就是不一样，比C那种回调函数高级了不是一点，但是切记函数对象是个对象。
+
+**明确STL算法返回的值是迭代器还是函数对象/谓词，是使用STL算法的核心所在！！！**
+
+### 谓词
+* 一元谓词： 函数参数1个，函数返回值是bool类型，可以作为一个判断式
+> 谓词可以是一个仿函数，也可以是一个回调函数。
+* 二元谓词： 函数参数2个，函数返回值是bool类型
+	
