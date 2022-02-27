@@ -1199,7 +1199,9 @@ public:
 ### 再谈类模板的分文件编写
 有名言，摘自(CS 106L的lecture7)[http://web.stanford.edu/class/cs106l/]：
 > Templates don’t emit code until instantiated.
+	
 > 也就是说模板在实例化之前不产生任何代码
+	
 那么就会出现典中典的**找不到实现**的错误：
 ```cpp
 //vector.h 类模板头文件
@@ -1220,10 +1222,15 @@ a.at(5);
 ```
 还是那句话：模板在被**实例化之前**不产生任何代码，因此编译main.cpp时产生了调用vector的代码，但是编译vector.cpp时因为是个**模板类**，没有生成代码，而且main.cpp包的是vector.h文件，vector.cpp啥玩意没有生成，自然找不到实现了。
 > 不像普通类按照这种编写方式就可以生成实现代码，然后顺利通过编译。
+	
 如何解决？在vector.h文件里面包含`#include "vector.cpp"`!!!，这非常奇怪，头文件咋还包含上源文件了捏🤭没办法谁让你main.cpp调用的是vector.h？不是模板不emit代码么，我直接把实现都包到.h头文件里，管你emit不emit？🤭
+	
 > 这进一步说明了，对于模板类的编写，实现和声明放在一起是多么的方便hhhh
+	
 事实上CS106L的原话如下：
+	
 > Templates don’t emit code until instantiated, so #include the .cpp file in the .h file, not the other way around!
+	
 **只推荐**在头文件中包含源文件的做法，呃这么推荐当然是必要的，不过确实包起来也不麻烦，就是重载友元的时候很阴间，干脆以后还是分文件写，需要重载<<的时候直接在.h文件里写得了🤭我真天菜。
 	
 	
